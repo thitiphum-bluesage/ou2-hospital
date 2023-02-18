@@ -1,0 +1,40 @@
+import React, { useState } from 'react'
+import { addDataTool } from '../lib/addDataTool';
+import Navbar from './Navbar';
+
+function AddDataPage() {
+    const startdata = { name: '', gender: '' };
+const [data, setData] = useState<{ address: { name: string, gender: string } }>({ address: startdata });
+
+    
+    function handleOnChange(e: React.ChangeEvent<HTMLInputElement>){
+        const { name, value } = e.target;
+            setData((prevState) => ({
+                address: {
+                ...prevState.address,
+                [name]: value
+                }
+            }));
+    }
+    
+    function handleSub(e: React.FormEvent<HTMLFormElement>) {
+        e.preventDefault();
+        console.log(data);
+        addDataTool('highvalueman',data)
+    }
+
+  return (
+    <div>
+        <Navbar/>
+        <form onSubmit={handleSub}>
+            <label htmlFor="name">name</label>
+            <input type="text" name='name' onChange={handleOnChange}/>
+            <label htmlFor="gender">gender</label>
+            <input type="text" name='gender' onChange={handleOnChange}/>
+            <button type="submit">GO</button>
+        </form>
+    </div>
+  )
+}
+
+export default AddDataPage
