@@ -9,7 +9,7 @@ export const startPersonalInfo = {
     GroupOfPeople: '',
     Nationality: '',
     Ethnicity: '',
-    PersonPicture: null
+    PersonPicture: ''
 }
 
 export const startAddress = {
@@ -48,7 +48,7 @@ export const startToFire = {
         GroupOfPeople: '',
         Nationality: '',
         Ethnicity: '',
-        PersonPicture: null
+        PersonPicture: ''
     },
     civilRegistrationAddress:{
         Province: '',

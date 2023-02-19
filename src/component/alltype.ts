@@ -9,7 +9,7 @@ export interface IPersonalInfo  {
     GroupOfPeople: string;
     Nationality: string;
     Ethnicity: string;
-    PersonPicture: File | null ;
+    PersonPicture: string ;
 }
 
 export interface IAddress {
@@ -48,7 +48,7 @@ export interface IToFire {
         GroupOfPeople: string;
         Nationality: string;
         Ethnicity: string;
-        PersonPicture: File | null ;
+        PersonPicture: string ;
     },
     civilRegistrationAddress:{
         Province: string;

@@ -1,21 +1,56 @@
-import React, { useState } from 'react';
+import React, { useState,useRef } from 'react';
 import { IPersonalInfo, IAddress, IBehavior, IRecordDetails,IToFire } from './alltype';
 import Navbar from './Navbar';
 import { startPersonalInfo,startAddress,startBehavior,startRecordDetails,startToFire } from './startdata';
 import './css/AddNewPatient.css'
 import { async } from '@firebase/util';
 import { addDataTool } from '../lib/addDataTool';
+import { storage } from '../lib/config';
+import { uploadBytes,ref,getDownloadURL  } from 'firebase/storage';
 
 function AddNewPatient() {
 
     const [toFire,setToFire] = useState<IToFire>(startToFire)
-
+       
     const [personalInfo,setPersonalInfo] = useState<IPersonalInfo>(startPersonalInfo)
     const [civilRegistrationAddress,setCivilRegistrationAddress] = useState<IAddress>(startAddress)
     const [currentAddress,setCurrentAddress] = useState<IAddress>(startAddress)
     const [behavior,setBehavior] = useState<IBehavior>(startBehavior)
     const [recordDetails,setRecordDetails] = useState<IRecordDetails>(startRecordDetails)
 
+    const [filePic, setFilePic] = useState<File | undefined>();
+    const inputRef = useRef<HTMLInputElement>(null);
+
+    const resetFileInput = () => {
+        // 👇️ reset input value
+        if (inputRef.current) {
+            inputRef.current.value = '';
+          }
+      };
+
+    //ใช้ refesh แทน
+    function setStartForm(){
+        setPersonalInfo(startPersonalInfo)
+        setCivilRegistrationAddress(startAddress)
+        setCurrentAddress(startAddress)
+        setBehavior(startBehavior)
+        setRecordDetails(startRecordDetails)
+        setIs1Done(false)
+        setIs2Done(false)
+        setIs3Done(false)
+        setIs4Done(false)
+        setIs5Done(false)
+        setChecked(true)
+        resetFileInput()
+    }
+
+    function handleFileChange(e: React.ChangeEvent<HTMLInputElement>) {
+        if (e.target.files && e.target.files.length > 0) {
+          const file = e.target.files[0];
+          setFilePic(file);
+        }
+      }
+   
     const [checked, setChecked] = useState<boolean>(true); 
     function handleCheckBox(){
         setChecked(!checked)
@@ -33,7 +68,7 @@ function AddNewPatient() {
     function subPersonalInfo(e: React.FormEvent<HTMLFormElement>){
         e.preventDefault()
         setIs1Done(true)
-        setToFire({...toFire,personalInfo:personalInfo})
+        setToFire({...toFire,personalInfo:personalInfo})     
     }
     function subCivilRegistrationAddress(e: React.FormEvent<HTMLFormElement>){
         e.preventDefault()
@@ -50,21 +85,53 @@ function AddNewPatient() {
         setIs4Done(true)
         setToFire({...toFire,behavior:behavior})
     }
-    async function subRecordDetails(e: React.FormEvent<HTMLFormElement>){
+    function subRecordDetails(e: React.FormEvent<HTMLFormElement>){
         e.preventDefault();
         setIs5Done(true)
         const now = new Date();
-        await setRecordDetails({...recordDetails,DateAdded:now,DateOfLastRevision:now});
-        await setToFire({...toFire,recordDetails:recordDetails});
+        setRecordDetails({...recordDetails,DateAdded:now,DateOfLastRevision:now});
+        setToFire({...toFire,recordDetails:recordDetails});
     }
     
-    function handleAddDoc(){
-        const allgood = is1Done&&is2Done&&is3Done&&is4Done&&is5Done
-        console.log(toFire)
-        if(!allgood){return(alert('ตรวจอีกครั้ง'))}
+    async function upLoadPic() {
+        if (!filePic) {
+          return '';
+        }
+        const imgref = ref(storage, `patientPic/${personalInfo.IDCard}`);
+        const snapshot = await uploadBytes(imgref, filePic);
+        const url = await getDownloadURL(snapshot.ref);
+        return url;
+      }
+
+    async function handleAddDoc() {
+        const allgood = is1Done && is2Done && is3Done && is4Done && is5Done;
         
-        addDataTool('/highvalueman',toFire)
-        refresh()
+        if (!allgood) {
+            return alert('ตรวจอีกครั้ง');
+        }
+
+        try {
+            const url = await upLoadPic(); // อัพโหลดรูปไปใน storage
+            const updatedPersonalInfo = {
+            ...toFire.personalInfo,
+            PersonPicture: url,
+            };
+            const updatedToFire = {
+            ...toFire,
+            personalInfo: updatedPersonalInfo,
+            };
+            await addDataTool('/highvalueman', updatedToFire);
+            alert('เพิ่มข้อมูลเรียบร้อยแล้ว');
+            
+            const toTop = () => {
+            document.body.scrollTop = 0;
+            document.documentElement.scrollTop = 0;
+            };
+            refresh()
+        } catch (err) {
+            console.error(err);
+            alert('เกิดข้อผิดพลาดในการเพิ่มข้อมูล');
+        }
     }
 
     function Change1(){
@@ -82,6 +149,9 @@ function AddNewPatient() {
     function Change5(){
         setIs5Done(false)
     }
+    
+    
+
 
   return (
     <div>
@@ -98,7 +168,8 @@ function AddNewPatient() {
 
                         <div className="form1">
                             <label>Name Title:</label>
-                            <select value={personalInfo.NameTitle} onChange={(e) => setPersonalInfo({...personalInfo,NameTitle: e.target.value})}>
+                            <select defaultValue="" onChange={(e) => setPersonalInfo({...personalInfo,NameTitle: e.target.value})}>
+                                <option value="" disabled>Select your option</option>
                                 <option value="Mr.">Mr.</option>
                                 <option value="Mrs.">Mrs.</option>
                                 <option value="Ms.">Ms.</option>
@@ -120,33 +191,45 @@ function AddNewPatient() {
                             <input type="text" value={personalInfo.NickName} onChange={(e) => setPersonalInfo({...personalInfo,NickName: e.target.value})}/>
                         </div>
 
-                        <div>
+                        <div className="form1">
                             <label>Date of Birth:</label>
                             <input type="date" value={personalInfo.DateOfBirth.toISOString().slice(0, 10)} onChange={(e) => setPersonalInfo({...personalInfo, DateOfBirth: new Date(e.target.value)})} />
                         </div>
 
-                        <div>
+                        <div className="form1">
                             <label>Gender:</label>
-                            <select value={personalInfo.Gender.toString()} onChange={(e) => setPersonalInfo({...personalInfo, Gender: e.target.value})}>
+                            <select defaultValue=""  onChange={(e) => setPersonalInfo({...personalInfo, Gender: e.target.value})}>
+                                <option value="" disabled>Select your option</option>
                                 <option value="Male">Male</option>
                                 <option value="Female">Female</option>
                                 <option value="Other">Other</option>
                             </select>
                         </div>
 
-                        <div>
+                        <div className="form1">
+                            <label>Group of People:</label>
+                            <select  defaultValue=""  onChange={(e) => setPersonalInfo({...personalInfo, GroupOfPeople: e.target.value})}>
+                                <option value="" disabled>Select your option</option>
+                                <option value="Normal Person">Normal Person</option>
+                                <option value="Soldier">Soldier</option>
+                                <option value="Monk">Monk</option>
+                                <option value="Ex-Convict">Ex-Convict</option>
+                            </select>
+                        </div>
+
+                        <div className="form1">
                             <label>Nationality:</label>
                             <input type="text" value={personalInfo.Nationality} onChange={(e) => setPersonalInfo({...personalInfo,Nationality: e.target.value})}/>
                         </div>
 
-                        <div>
+                        <div className="form1">
                             <label>Ethnicity:</label>
                             <input type="text" value={personalInfo.Ethnicity} onChange={(e) => setPersonalInfo({...personalInfo,Ethnicity: e.target.value})}/>
                         </div>
 
-                        <div>
+                        <div className="form1">
                             <label>Person Picture:</label>
-                            <input type="file" onChange={(e) => setPersonalInfo({...personalInfo, PersonPicture: e.target.files ? e.target.files[0] : null})} />
+                            <input type="file" ref={inputRef} onChange={handleFileChange}/>
                         </div>
                     </div>
                     <div className="button-container">
